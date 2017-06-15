@@ -355,6 +355,53 @@ namespace Hylasoft.Opc.Ua
     }
 
     /// <summary>
+    /// Monitor the specified tags for changes with a single callback and unsubscribe function
+    /// </summary>
+    /// <param name="tags">List of tag names for subscription</param>
+    /// <param name="subName">Name of subscription (default DefaultSub)</param>
+    /// <param name="callback">the callback to execute when the value is changed</param>
+    /// <returns>The unsubscribe action</returns>
+    public Action Subscribe(string[] tags, Action<string, DataValue> callback, string subName)
+    {
+      var sub = new Subscription
+      {
+        PublishingInterval = _options.DefaultMonitorInterval,
+        PublishingEnabled = true,
+        LifetimeCount = _options.SubscriptionLifetimeCount,
+        KeepAliveCount = _options.SubscriptionKeepAliveCount,
+        DisplayName = subName,
+        Priority = byte.MaxValue
+      };
+      foreach (var tag in tags)
+      {
+        var node = FindNode(tag);
+        var item = new MonitoredItem
+        {
+          StartNodeId = node.NodeId,
+          AttributeId = Attributes.Value,
+          DisplayName = tag,
+          SamplingInterval = _options.DefaultMonitorInterval
+        };
+        sub.AddItem(item);
+        item.Notification += (monitoredItem, args) =>
+        {
+          var p = (MonitoredItemNotification)args.NotificationValue;
+          callback(monitoredItem.DisplayName, p.Value);
+        };
+      }
+      _session.AddSubscription(sub);
+      sub.Create();
+      sub.ApplyChanges();
+      Action unsubscribe = () =>
+      {
+        sub.RemoveItems(sub.MonitoredItems);
+        sub.Delete(true);
+        _session.RemoveSubscription(sub);
+        sub.Dispose();
+      };
+      return unsubscribe;
+    }
+    /// <summary>
     /// Explore a folder on the Opc Server
     /// </summary>
     /// <param name="tag">The fully-qualified identifier of the tag. You can specify a subfolder by using a comma delimited name.
