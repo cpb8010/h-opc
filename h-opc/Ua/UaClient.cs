@@ -266,6 +266,36 @@ namespace Hylasoft.Opc.Ua
     }
 
     /// <summary>
+    /// Write a value on the specified opc tags
+    /// </summary>
+    /// <param name="tagItems">An array of tuples of tag name and value to write.</param>
+    /// <returns>True if all write results were good, false otherwise</returns>
+    public bool WriteMany(Tuple<string, object>[] tagItems)
+    {
+      var writeCollection = new WriteValue[tagItems.Length];
+      for (int i = 0; i < writeCollection.Length; i++)
+      {
+        var n = FindNode(tagItems[i].Item1);
+        writeCollection[i] = new WriteValue
+        {
+            NodeId = n.NodeId,
+            AttributeId = Attributes.Value,
+            Value = { Value = tagItems[i].Item2 }
+        };
+      }
+
+      StatusCodeCollection results;
+      DiagnosticInfoCollection diag;
+      _session.Write(
+          requestHeader: null,
+          nodesToWrite: writeCollection,
+          results: out results,
+          diagnosticInfos: out diag);
+
+      return results.All(StatusCode.IsGood);
+    }
+
+    /// <summary>
     /// Write a value on the specified opc tag asynchronously
     /// </summary>
     /// <typeparam name="T">The type of tag to write on</typeparam>
