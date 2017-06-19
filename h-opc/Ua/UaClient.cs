@@ -185,6 +185,36 @@ namespace Hylasoft.Opc.Ua
       return (T)val.Value;
     }
 
+    /// <summary>
+    /// Read a tag
+    /// </summary>
+    /// <param name="tags">The fully-qualified identifier of the tag.</param>
+    /// <returns>The values retrieved from the OPC</returns>
+    public DataValueCollection ReadMany(string[] tags)
+    {
+      var readTags = new ReadValueId[tags.Length];
+      for (int i = 0; i < readTags.Length; i++)
+      {
+        var n = FindNode(tags[i]);
+        readTags[i] = new ReadValueId
+        {
+            NodeId = n.NodeId,
+            AttributeId = Attributes.Value
+        };
+      }
+      var nodesToRead = new ReadValueIdCollection(readTags);
+      DataValueCollection results;
+      DiagnosticInfoCollection diag;
+      _session.Read(
+          requestHeader: null,
+          maxAge: 0,
+          timestampsToReturn: TimestampsToReturn.Neither,
+          nodesToRead: nodesToRead,
+          results: out results,
+          diagnosticInfos: out diag);
+
+      return results;
+    }
 
     /// <summary>
     /// Read a tag asynchronously
