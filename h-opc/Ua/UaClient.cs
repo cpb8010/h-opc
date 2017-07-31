@@ -299,8 +299,8 @@ namespace Hylasoft.Opc.Ua
     /// Write a value on the specified opc tags
     /// </summary>
     /// <param name="tagItems">An array of tuples of tag name and value to write.</param>
-    /// <returns>True if all write results were good, false otherwise</returns>
-    public bool WriteMany(Tuple<string, object>[] tagItems)
+    /// <returns>Tags that failed to write</returns>
+    public List<Tuple<string, StatusCode>> WriteMany(Tuple<string, object>[] tagItems)
     {
       var writeCollection = new WriteValue[tagItems.Length];
       for (int i = 0; i < writeCollection.Length; i++)
@@ -322,7 +322,12 @@ namespace Hylasoft.Opc.Ua
           results: out results,
           diagnosticInfos: out diag);
 
-      return results.All(StatusCode.IsGood);
+      var returnCodes = new List<Tuple<string, StatusCode>>();
+      for (int i = 0; i < tagItems.Length; i++)
+      {
+        returnCodes.Add(Tuple.Create(tagItems[i].Item1, results[i]));
+      }
+      return returnCodes;
     }
 
     /// <summary>
